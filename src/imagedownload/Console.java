@@ -9,14 +9,14 @@ package imagedownload;
  *
  * @author wytsang
  */
-public class ImageDownload {
+public class Console {
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        // TODO code application logic here
-        
+        Downloader downloader= new Downloader();
+        downloader.download();
     }
     
 }
