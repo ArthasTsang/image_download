@@ -5,17 +5,9 @@
  */
 package imagedownload;
 
-import java.awt.AWTException;
-import java.awt.Robot;
-import java.awt.event.KeyEvent;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -24,12 +16,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
-import org.openqa.selenium.Keys;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.interactions.Actions;
 
 /**
  *
@@ -56,13 +47,17 @@ public class Downloader {
         win.maximize();
         int screenHeight= win.getSize().getHeight();
         int screenWidth= win.getSize().getWidth();
-        win.setSize(new Dimension(450, 400));
-//        System.out.println("Screen: "+screenHeight+"*"+screenWidth);
-//        System.out.println("Browser: "+win.getSize().getHeight()+"*"+win.getSize().getWidth());
-        win.setPosition(new Point(screenWidth-win.getSize().getWidth(), screenHeight-win.getSize().getHeight()));
+        int browserHeight= Integer.parseInt(config.getProperty("browser.height"));
+        int browserWidth= Integer.parseInt(config.getProperty("browser.width"));
+        win.setSize(new Dimension(browserWidth, browserHeight));
+        System.out.println("Screen: "+screenHeight+"*"+screenWidth);
+        System.out.println("Browser: "+win.getSize().getHeight()+"*"+win.getSize().getWidth());
+//        win.setPosition(new Point(screenWidth, screenHeight));
         
         String firstPage = config.getProperty("website");
-        driver.get(firstPage);
+        String page = firstPage;
+        
+        driver.get(page);
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS); 
         
         boolean minSizeFilter= Boolean.parseBoolean(config.getProperty("filter.minSize"));
@@ -70,82 +65,55 @@ public class Downloader {
         int minWidth= Integer.parseInt(config.getProperty("filter.minSize.width"));
         
         List<WebElement> imgList= driver.findElements(By.tagName("img"));
-        List<WebElement> filterList= new ArrayList<WebElement>();
+        List<String> filteredList= new ArrayList<String>();
         for(WebElement img: imgList){
-            System.out.println("Image location: "+img.getAttribute("src"));
-            System.out.println("Image size: "+img.getSize().getHeight()+"*"+img.getSize().getWidth());
+//            System.out.println("Image location: "+img.getAttribute("src"));
+//            System.out.println("Image size: "+img.getSize().getHeight()+"*"+img.getSize().getWidth());
             if(minSizeFilter){
                 if(img.getSize().getHeight()>=minHeight && img.getSize().getWidth()>=minWidth){
-                    filterList.add(img);
+                    filteredList.add(img.getAttribute("src").trim());
                 }
             }
         }
         
-        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-        System.out.println("<end of filter>");
-        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-        
         int cnt=0;
         InputStream imgIn= null;
         OutputStream imgOut = null;
-        for(WebElement img: filterList){
+        for(String location: filteredList){
             cnt++;
             try {
-                System.out.println("Image location: "+img.getAttribute("src"));
-                System.out.println("Image size: "+img.getSize().getHeight()+"*"+img.getSize().getWidth());
-                
-                String location= img.getAttribute("src").trim();
-                driver.get(location);
-                WebElement image =driver.findElement(By.tagName("img"));
-                
-//                System.out.println("start robot");
-//                //Rihgt click on Image using contextClick() method.
-//                Actions action= new Actions(driver);
-//                action.contextClick(img).build().perform();
-//                action.sendKeys(Keys.CONTROL, "v").build().perform();
-//                
-//                Robot robot = new Robot();
-//                robot.keyPress(KeyEvent.VK_D);
-//                robot.keyPress(KeyEvent.VK_SHIFT);
-//                robot.keyPress(KeyEvent.VK_SEMICOLON);
-//                robot.keyRelease(KeyEvent.VK_SHIFT);
-//                robot.keyPress(KeyEvent.VK_BACK_SLASH);
-//                robot.keyPress(KeyEvent.VK_I);
-//                robot.keyPress(KeyEvent.VK_M);
-//                robot.keyPress(KeyEvent.VK_A);
-//                robot.keyPress(KeyEvent.VK_G);
-//                robot.keyPress(KeyEvent.VK_E);
-//                robot.keyPress(KeyEvent.VK_PERIOD);
-//                robot.keyPress(KeyEvent.VK_I);
-//                robot.keyPress(KeyEvent.VK_M);
-//                robot.keyPress(KeyEvent.VK_G);
-//                // To press Save button.
-//                robot.keyPress(KeyEvent.VK_ENTER);  
-//                System.out.println("end robot");
-                
                 String[] urlArr = location.split("\\/");
-                System.out.println("File name: "+urlArr[urlArr.length-1]);
                 String[] nameArr= urlArr[urlArr.length-1].split("\\.");
-                System.out.println("File ext: "+nameArr[nameArr.length-1]);
                 String ext= nameArr[nameArr.length-1];
                 String filePath= config.getProperty("output.folder")+config.getProperty("output.namePrefix")+cnt+"."+ext;
+                System.out.println("File location: "+location);
+                System.out.println("File name: "+urlArr[urlArr.length-1]);
+                System.out.println("File ext: "+nameArr[nameArr.length-1]);
+                System.out.println("Output: "+filePath);
                 
-                URL url = new URL(location);
-                imgIn = new BufferedInputStream(url.openStream());
-                imgOut = new BufferedOutputStream(new FileOutputStream(filePath));
-                for (int i; (i = imgIn.read()) != -1;) {
-                    imgOut.write(i);
-                }
-                imgIn.close();  
-                imgOut.close();
-            } catch (MalformedURLException ex) {
-                ex.printStackTrace();
-                Logger.getLogger(Downloader.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                Logger.getLogger(Downloader.class.getName()).log(Level.SEVERE, null, ex);
-//            } catch (AWTException ex) {
-//                Logger.getLogger(Downloader.class.getName()).log(Level.SEVERE, null, ex);
+//                URL url = new URL(location);
+//                URLConnection conn= url.openConnection();
+//                conn.setRequestProperty("Accept", "image/webp,image/*,*/*;q=0.8");
+//                conn.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
+//                conn.setRequestProperty("Accept-Language", "en-US,en;q=0.8");
+//                conn.setRequestProperty("Host", "m.iprox.xyz");
+//                conn.setRequestProperty("Referer", "http://18h.animezilla.com/manga/527/1");
+//                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36");
+//                imgIn = new BufferedInputStream(url.openStream());
+//                imgOut = new BufferedOutputStream(new FileOutputStream(filePath));
+//                for (int i; (i = imgIn.read()) != -1;) {
+//                    imgOut.write(i);
+//                }
+//                imgIn.close();  
+//                imgOut.close();
+                
+                
+                driver.get(location);
+                driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS); 
+                WebElement image =driver.findElement(By.tagName("img"));
+                System.out.println("Image element: "+image.getAttribute("src"));
+                   
+                AutoSave.save(driver, image, filePath);
             } finally {
                 try {
                     if(imgIn!=null){
@@ -159,13 +127,7 @@ public class Downloader {
                 }
             }
         }  
-        
-//        try {
-//            Thread.sleep(Long.valueOf(3000));
-//        } catch (InterruptedException ex) {
-//            Logger.getLogger(ImageDownload.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        driver.quit();
+        driver.quit();
     }
     
 }
