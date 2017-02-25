@@ -8,6 +8,7 @@ package imagedownload;
 import java.awt.AWTException;
 import java.awt.Robot;
 import java.awt.event.KeyEvent;
+import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openqa.selenium.WebDriver;
@@ -51,7 +52,13 @@ public class AutoSave {
             
             robot.keyPress(KeyEvent.VK_ENTER);
             robot.keyRelease(KeyEvent.VK_ENTER); 
-            Thread.sleep(2000);
+            boolean saveComplete= false;
+            while(!saveComplete){
+                File f= new File(filePath);
+                saveComplete= f.exists();
+                System.out.println("Save complete: "+saveComplete);
+                Thread.sleep(100);
+            }
         } catch (AWTException ex) {
             Logger.getLogger(Downloader.class.getName()).log(Level.SEVERE, null, ex);
         } catch (InterruptedException ex) {
